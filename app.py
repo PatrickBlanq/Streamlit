@@ -252,10 +252,43 @@ async def download_files_and_run():
 
  
     # Generate configuration file
-    config ={"log":{"access":"/dev/null","error":"/dev/null","loglevel":"none",},"inbounds":[{"port":ARGO_PORT ,"protocol":"vless","settings":{"clients":[{"id":UUID ,"flow":"xtls-rprx-vision",},],"decryption":"none","fallbacks":[{"dest":3001 },{"path":"/vless-argo","dest":3002 },{"path":"/vmess-argo","dest":3003 },{"path":"/trojan-argo","dest":3004 },],},"streamSettings":{"network":"tcp",},},{"port":3001 ,"listen":"127.0.0.1","protocol":"vless","settings":{"clients":[{"id":UUID },],"decryption":"none"},"streamSettings":{"network":"ws","security":"none"}},{"port":3002 ,"listen":"127.0.0.1","protocol":"vless","settings":{"clients":[{"id":UUID ,"level":0 }],"decryption":"none"},"streamSettings":{"network":"ws","security":"none","wsSettings":{"path":"/vless-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},{"port":3003 ,"listen":"127.0.0.1","protocol":"vmess","settings":{"clients":[{"id":UUID ,"alterId":0 }]},"streamSettings":{"network":"ws","wsSettings":{"path":"/vmess-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},{"port":3004 ,"listen":"127.0.0.1","protocol":"trojan","settings":{"clients":[{"password":UUID },]},"streamSettings":{"network":"ws","security":"none","wsSettings":{"path":"/trojan-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},],"outbounds":[{"protocol":"freedom","tag": "direct" },{"protocol":"blackhole","tag":"block"}]}
-    with open(os.path.join(FILE_PATH, 'config.json'), 'w', encoding='utf-8') as config_file:
-        json.dump(config, config_file, ensure_ascii=False, indent=2)
-    
+    import json
+
+    config_dict = {
+        "inbounds": [
+            {
+                "listen": "127.0.0.1",
+                "port": 2777,
+                "protocol": "vmess",
+                "settings": {
+                    "clients": [
+                        {"id": "792c9cd6-9ece-4ebc-ff02-86eaf8bf7e73"}
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/792c9cd6-9ece-4ebc-ff02-86eaf8bf7e73"
+                    }
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "freedom"
+            }
+        ]
+    }
+
+    # 一行 JSON
+    config = json.dumps(config_dict, separators=(',', ':'))
+
+    # 写入文件（正确）
+    with open(os.path.join(FILE_PATH, 'config.json'), 'w', encoding='utf-8') as f:
+        f.write(config)
+
+    print("config.json saved.")
+
     # Run nezha
 
 
@@ -486,7 +519,7 @@ def clean_files():
 # Main function to start the server
 async def start_server():
     #delete_nodes()
-    #cleanup_old_files()
+    cleanup_old_files()
     #create_directory()
     argo_type()
     await download_files_and_run()
