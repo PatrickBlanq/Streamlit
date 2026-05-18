@@ -5,7 +5,6 @@ import time
 import base64
 import shutil
 import asyncio
-import requests
 import platform
 import subprocess
 import threading
@@ -26,7 +25,7 @@ UUID = os.environ.get('UUID', '792c9cd6-9ece-4ebc-ff02-86eaf8bf7e73')  # UUID,�
 #NEZHA_KEY = os.environ.get('NEZHA_KEY', '')            # v1哪吒的NZ_CLIENT_SECRET或v0哪吒agent密钥
 
 ARGO_DOMAIN = os.environ.get('ARGO_DOMAIN', 'ms.ai7g.eu.org')        # Argo固定隧道域名,留空即使用临时隧道
-ARGO_AUTH = os.environ.get('ARGO_AUTH', 'eyJhIjoiODdiZmI2YjUxMjVmM2UxMDExYTQ5YTY1MWYyMTUwMTkiLCJ0IjoiMjYzNzkyZjYtMzFiMC00NzU2LTg3OTktNzA1MGM2MzdhMWZkIiwicyI6Ill6Y3hOV05tTjJJdE1tSXpOeTAwTUdWaUxUZ3dPVEV0T0dSaU5HTmxaVFJtTW1WaSJ9')            # Argo固定隧道密钥,留空即使用临时隧道
+ARGO_AUTH = os.environ.get('ARGO_AUTH', 'eyJhIjoiODdiZmI2YjUxMjVmM2UxMDExYTQ5YTY1MWYyMTUwMTkiLCJ0IjoiNDRmNDJjMzEtMzJiNy00YWI4LWE2YTctZjBmYmUxMjlmMTJjIiwicyI6Ik9UUmlPV05qWWpRdFpqa3dZaTAwTVdRekxUaGlZVFF0WkRrM1pEVmxOREUxTVRkaiJ9')            # Argo固定隧道密钥,留空即使用临时隧道
 ARGO_PORT = int(os.environ.get('ARGO_PORT', '2777'))   # Argo端口,使用固定隧道token需在cloudflare后台设置端口和这里一致
 CFIP = os.environ.get('CFIP', 'm2.u.cloudns.be')       # 优选ip或优选域名
 
@@ -56,35 +55,7 @@ boot_log_path = os.path.join(FILE_PATH, 'boot.log')
 config_path = os.path.join(FILE_PATH, 'config.json')
 
 # Delete nodes
-def delete_nodes():
-    try:
-        if not UPLOAD_URL:
-            return
 
-        if not os.path.exists(sub_path):
-            return
-
-        try:
-            with open(sub_path, 'r') as file:
-                file_content = file.read()
-        except:
-            return None
-
-        decoded = base64.b64decode(file_content).decode('utf-8')
-        nodes = [line for line in decoded.split('\n') if any(protocol in line for protocol in ['vless://', 'vmess://', 'trojan://', 'hysteria2://', 'tuic://'])]
-
-        if not nodes:
-            return
-
-        try:
-            requests.post(f"{UPLOAD_URL}/api/delete-nodes", 
-                          data=json.dumps({"nodes": nodes}),
-                          headers={"Content-Type": "application/json"})
-        except:
-            return None
-    except Exception as e:
-        print(f"Error in delete_nodes: {e}")
-        return None
 
 # Clean up old files
 def cleanup_old_files():
@@ -312,12 +283,8 @@ async def download_files_and_run():
             args = f"tunnel --edge-ip-version auto --no-autoupdate --protocol http2 --logfile {os.path.join(FILE_PATH, 'boot.log')} --loglevel info --url http://localhost:{ARGO_PORT}"
         
         try:
-            #log_file = os.path.join(FILE_PATH, "cloudflared.log")
-            #查看日志
-            #exec_cmd(f"nohup {os.path.join(FILE_PATH, 'bot')} {args} > {log_file} 2>&1 &")
             exec_cmd(f"nohup {os.path.join(FILE_PATH, 'bot')} {args} >/dev/null 2>&1 &")
-            print("bot is running, log saved to:", log_file)
-
+            print('bot is running')
             time.sleep(2)
         except Exception as e:
             print(f"Error executing command: {e}")
@@ -528,13 +495,13 @@ async def start_server():
     #create_directory()
     argo_type()
     await download_files_and_run()
-    #add_visit_task()
+    add_visit_task()
     
     server_thread = Thread(target=run_server)
     server_thread.daemon = True
     server_thread.start()   
     
-    clean_files()
+    #clean_files()
     
 def run_server():
     server = HTTPServer(('0.0.0.0', PORT), RequestHandler)
