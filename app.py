@@ -405,11 +405,9 @@ async def start_server():
 
 st.title("Hello World")
 
-def run_async():
-    asyncio.run(start_server())
-    
-    while True:
-        time.sleep(3600)
+async def run_async():
+    await start_server()
+ 
         
 if __name__ == "__main__":
     run_async()
