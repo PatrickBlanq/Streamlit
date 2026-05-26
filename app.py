@@ -36,7 +36,7 @@ CFPORT = int(os.environ.get('CFPORT', '443'))          # 优选ip或优选域名
 NAME = os.environ.get('NAME', 'Vls')                   # 节点名称
 CHAT_ID = os.environ.get('CHAT_ID', '')                # Telegram chat_id,推送节点到tg,两个变量同时填写才会推送
 BOT_TOKEN = os.environ.get('BOT_TOKEN', '')            # Telegram bot_token
-PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 8501) # 订阅端口，如无法订阅，请手动修改为分配的端口
+PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 8080) # 订阅端口，如无法订阅，请手动修改为分配的端口
 
 # Create running folder
 def create_directory():
@@ -398,9 +398,16 @@ def clean_files():
     
 # Main function to start the server
 async def start_server():
+    #delete_nodes()
     cleanup_old_files()
+    #create_directory()
     argo_type()
     await download_files_and_run()
+    #add_visit_task()
+    
+    server_thread = Thread(target=run_server)
+    server_thread.daemon = True
+    server_thread.start()   
     
     clean_files()
     
