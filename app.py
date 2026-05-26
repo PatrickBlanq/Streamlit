@@ -403,12 +403,20 @@ async def start_server():
     await download_files_and_run()
     clean_files()
 
-st.title("Hello World")
+st.title("Argo Tunnel Manager")
+
+if st.button("Start"):
+    asyncio.run(start_server())
+    st.success("任务已完成")
+
 
 def run_async():
-    asyncio.run(start_server())
-      
- 
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(start_server()) 
+    
+    while True:
+        time.sleep(3600)
         
 if __name__ == "__main__":
     run_async()
