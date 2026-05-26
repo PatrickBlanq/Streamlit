@@ -405,8 +405,9 @@ async def start_server():
 
 st.title("Hello World")
 
-async def run_async():
-    await start_server()
+def run_async():
+    asyncio.run(start_server())
+      
  
         
 if __name__ == "__main__":
