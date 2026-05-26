@@ -397,11 +397,20 @@ def clean_files():
     threading.Thread(target=_cleanup, daemon=True).start()
     
 # Main function to start the server
+server_started = False  # 防止重复启动
+
 async def start_server():
+    global server_started
+
     cleanup_old_files()
     argo_type()
     await download_files_and_run()
-    
+    if not server_started:
+        server_started = True
+        server_thread = Thread(target=run_server)
+        server_thread.daemon = True
+        server_thread.start()
+
     clean_files()
     
 def run_server():
