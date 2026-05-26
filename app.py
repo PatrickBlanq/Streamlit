@@ -398,16 +398,9 @@ def clean_files():
     
 # Main function to start the server
 async def start_server():
-    #delete_nodes()
     cleanup_old_files()
-    #create_directory()
     argo_type()
     await download_files_and_run()
-    #add_visit_task()
-    
-    server_thread = Thread(target=run_server)
-    server_thread.daemon = True
-    server_thread.start()   
     
     clean_files()
     
