@@ -11,6 +11,7 @@ import subprocess
 import threading
 from threading import Thread
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import streamlit as st
 
 #https://share.streamlit.io/
 # Environment variables
@@ -396,29 +397,18 @@ def clean_files():
     
     threading.Thread(target=_cleanup, daemon=True).start()
     
-# Main function to start the server
-server_started = False  # 防止重复启动
-
 async def start_server():
-    global server_started
-
     cleanup_old_files()
     argo_type()
     await download_files_and_run()
-    if not server_started:
-        server_started = True
-        server_thread = Thread(target=run_server)
-        server_thread.daemon = True
-        server_thread.start()
-
     clean_files()
-    
-def run_server():
-    server = HTTPServer(('0.0.0.0', PORT), RequestHandler)
-    print(f"Server is running on port {PORT}")
-    print(f"Running done！")
-    print(f"\nLogs will be delete in 90 seconds")
-    server.serve_forever()
+
+st.title("Argo Tunnel Manager")
+
+if st.button("Start"):
+    asyncio.run(start_server())
+    st.success("任务已完成")
+
 
 def run_async():
     loop = asyncio.new_event_loop()
