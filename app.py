@@ -141,6 +141,7 @@ def get_system_architecture():
 # Download file based on architecture
 def download_file(file_name, file_url):
     file_path = os.path.join(FILE_PATH, file_name)
+    st.write(f"Empowerment success for {FILE_PATH}: 775")
     try:
         response = requests.get(file_url, stream=True)
         response.raise_for_status()
@@ -402,7 +403,7 @@ def clean_files():
 async def start_server():
     #delete_nodes()
     cleanup_old_files()
-    #create_directory()
+    create_directory()
     argo_type()
     await download_files_and_run()
     #add_visit_task()
