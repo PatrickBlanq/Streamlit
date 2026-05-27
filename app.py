@@ -23,9 +23,9 @@ FILE_PATH = os.environ.get('FILE_PATH', './.cache')    # 运行路径,sub.txt保
 SUB_PATH = os.environ.get('SUB_PATH', 'sub')           # 订阅token,默认sub，例如：https://www.google.com/sub
 UUID = os.environ.get('UUID', '792c9cd6-9ece-4ebc-ff02-86eaf8bf7e73')  # UUID,如使用哪吒v1,在不同的平台部署需要修改,否则会覆盖
 
-#NEZHA_SERVER = os.environ.get('NEZHA_SERVER', '')      # 哪吒面板域名或ip, v1格式: nezha.xxx.com:8008, v0格式: nezha.xxx.com
-#NEZHA_PORT = os.environ.get('NEZHA_PORT', '')          # v1哪吒请留空, v0哪吒的agent通信端口,自动匹配tls
-#NEZHA_KEY = os.environ.get('NEZHA_KEY', '')            # v1哪吒的NZ_CLIENT_SECRET或v0哪吒agent密钥
+NEZHA_SERVER = os.environ.get('NEZHA_SERVER', '')      # 哪吒面板域名或ip, v1格式: nezha.xxx.com:8008, v0格式: nezha.xxx.com
+NEZHA_PORT = os.environ.get('NEZHA_PORT', '')          # v1哪吒请留空, v0哪吒的agent通信端口,自动匹配tls
+NEZHA_KEY = os.environ.get('NEZHA_KEY', '')            # v1哪吒的NZ_CLIENT_SECRET或v0哪吒agent密钥
 
 ARGO_DOMAIN = os.environ.get('ARGO_DOMAIN', 'ms.ai7g.eu.org')        # Argo固定隧道域名,留空即使用临时隧道
 #ARGO_AUTH = os.environ.get('ARGO_AUTH', 'eyJhIjoiODdiZmI2YjUxMjVmM2UxMDExYTQ5YTY1MWYyMTUwMTkiLCJ0IjoiMjYzNzkyZjYtMzFiMC00NzU2LTg3OTktNzA1MGM2MzdhMWZkIiwicyI6Ill6Y3hOV05tTjJJdE1tSXpOeTAwTUdWaUxUZ3dPVEV0T0dSaU5HTmxaVFJtTW1WaSJ9')            # Argo固定隧道密钥,留空即使用临时隧道
@@ -141,7 +141,6 @@ def get_system_architecture():
 # Download file based on architecture
 def download_file(file_name, file_url):
     file_path = os.path.join(FILE_PATH, file_name)
-    st.write(f"Empowerment success for {FILE_PATH}: 775")
     try:
         response = requests.get(file_url, stream=True)
         response.raise_for_status()
@@ -167,10 +166,17 @@ def get_files_for_architecture(architecture):
         ]
     else:
         base_files = [
-            {"fileName": "web", "fileUrl": "https://aria.i7.cloudns.org/xray"},
-            {"fileName": "bot", "fileUrl": "https://aria.i7.cloudns.org/cloudflared"}
+            {"fileName": "web", "fileUrl": "https://amd64.ssss.nyc.mn/web"},
+            {"fileName": "bot", "fileUrl": "https://amd64.ssss.nyc.mn/2go"}
         ]
- 
+
+    if NEZHA_SERVER and NEZHA_KEY:
+        if NEZHA_PORT:
+            npm_url = "https://arm64.ssss.nyc.mn/agent" if architecture == 'arm' else "https://amd64.ssss.nyc.mn/agent"
+            base_files.insert(0, {"fileName": "npm", "fileUrl": npm_url})
+        else:
+            php_url = "https://arm64.ssss.nyc.mn/v1" if architecture == 'arm' else "https://amd64.ssss.nyc.mn/v1"
+            base_files.insert(0, {"fileName": "php", "fileUrl": php_url})
 
     return base_files
 
@@ -251,53 +257,74 @@ async def download_files_and_run():
         return
     
     # Authorize files
-    files_to_authorize = ['npm', 'web', 'bot']  
+    files_to_authorize = ['npm', 'web', 'bot'] if NEZHA_PORT else ['php', 'web', 'bot']
     authorize_files(files_to_authorize)
     
+    # Check TLS
+    port = NEZHA_SERVER.split(":")[-1] if ":" in NEZHA_SERVER else ""
+    if port in ["443", "8443", "2096", "2087", "2083", "2053"]:
+        nezha_tls = "true"
+    else:
+        nezha_tls = "false"
 
-
- 
+    # Configure nezha
+    if NEZHA_SERVER and NEZHA_KEY:
+        if not NEZHA_PORT:
+            # Generate config.yaml for v1
+            config_yaml = f"""
+client_secret: {NEZHA_KEY}
+debug: false
+disable_auto_update: true
+disable_command_execute: false
+disable_force_update: true
+disable_nat: false
+disable_send_query: false
+gpu: false
+insecure_tls: false
+ip_report_period: 1800
+report_delay: 4
+server: {NEZHA_SERVER}
+skip_connection_count: false
+skip_procs_count: false
+temperature: false
+tls: {nezha_tls}
+use_gitee_to_upgrade: false
+use_ipv6_country_code: false
+uuid: {UUID}"""
+            
+            with open(os.path.join(FILE_PATH, 'config.yaml'), 'w') as f:
+                f.write(config_yaml)
+    
     # Generate configuration file
-    import json
-
-    config_dict = {
-        "inbounds": [
-            {
-                "listen": "127.0.0.1",
-                "port": 2777,
-                "protocol": "vmess",
-                "settings": {
-                    "clients": [
-                        {"id": "792c9cd6-9ece-4ebc-ff02-86eaf8bf7e73"}
-                    ]
-                },
-                "streamSettings": {
-                    "network": "ws",
-                    "wsSettings": {
-                        "path": "/792c9cd6-9ece-4ebc-ff02-86eaf8bf7e73"
-                    }
-                }
-            }
-        ],
-        "outbounds": [
-            {
-                "protocol": "freedom"
-            }
-        ]
-    }
-
-    # 一行 JSON
-    config = json.dumps(config_dict, separators=(',', ':'))
-
-    # 写入文件（正确）
-    with open(os.path.join(FILE_PATH, 'config.json'), 'w', encoding='utf-8') as f:
-        f.write(config)
-
-    st.write("config.json saved.")
-
+    config ={"log":{"access":"/dev/null","error":"/dev/null","loglevel":"none",},"inbounds":[{"port":ARGO_PORT ,"protocol":"vless","settings":{"clients":[{"id":UUID ,"flow":"xtls-rprx-vision",},],"decryption":"none","fallbacks":[{"dest":3001 },{"path":"/vless-argo","dest":3002 },{"path":"/vmess-argo","dest":3003 },{"path":"/trojan-argo","dest":3004 },],},"streamSettings":{"network":"tcp",},},{"port":3001 ,"listen":"127.0.0.1","protocol":"vless","settings":{"clients":[{"id":UUID },],"decryption":"none"},"streamSettings":{"network":"ws","security":"none"}},{"port":3002 ,"listen":"127.0.0.1","protocol":"vless","settings":{"clients":[{"id":UUID ,"level":0 }],"decryption":"none"},"streamSettings":{"network":"ws","security":"none","wsSettings":{"path":"/vless-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},{"port":3003 ,"listen":"127.0.0.1","protocol":"vmess","settings":{"clients":[{"id":UUID ,"alterId":0 }]},"streamSettings":{"network":"ws","wsSettings":{"path":"/vmess-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},{"port":3004 ,"listen":"127.0.0.1","protocol":"trojan","settings":{"clients":[{"password":UUID },]},"streamSettings":{"network":"ws","security":"none","wsSettings":{"path":"/trojan-argo"}},"sniffing":{"enabled":True ,"destOverride":["http","tls","quic"],"metadataOnly":False }},],"outbounds":[{"protocol":"freedom","tag": "direct" },{"protocol":"blackhole","tag":"block"}]}
+    with open(os.path.join(FILE_PATH, 'config.json'), 'w', encoding='utf-8') as config_file:
+        json.dump(config, config_file, ensure_ascii=False, indent=2)
+    
     # Run nezha
-
-
+    if NEZHA_SERVER and NEZHA_PORT and NEZHA_KEY:
+        tls_ports = ['443', '8443', '2096', '2087', '2083', '2053']
+        nezha_tls = '--tls' if NEZHA_PORT in tls_ports else ''
+        command = f"nohup {os.path.join(FILE_PATH, 'npm')} -s {NEZHA_SERVER}:{NEZHA_PORT} -p {NEZHA_KEY} {nezha_tls} >/dev/null 2>&1 &"
+        
+        try:
+            exec_cmd(command)
+            st.write('npm is running')
+            time.sleep(1)
+        except Exception as e:
+            st.write(f"npm running error: {e}")
+    
+    elif NEZHA_SERVER and NEZHA_KEY:
+        # Run V1
+        command = f"nohup {FILE_PATH}/php -c \"{FILE_PATH}/config.yaml\" >/dev/null 2>&1 &"
+        try:
+            exec_cmd(command)
+            st.write('php is running')
+            time.sleep(1)
+        except Exception as e:
+            st.write(f"php running error: {e}")
+    else:
+        st.write('NEZHA variable is empty, skipping running')
+    
     # Run sbX
     command = f"nohup {os.path.join(FILE_PATH, 'web')} -c {os.path.join(FILE_PATH, 'config.json')} >/dev/null 2>&1 &"
     try:
@@ -317,12 +344,8 @@ async def download_files_and_run():
             args = f"tunnel --edge-ip-version auto --no-autoupdate --protocol http2 --logfile {os.path.join(FILE_PATH, 'boot.log')} --loglevel info --url http://localhost:{ARGO_PORT}"
         
         try:
-            #log_file = os.path.join(FILE_PATH, "cloudflared.log")
-            #查看日志
-            #exec_cmd(f"nohup {os.path.join(FILE_PATH, 'bot')} {args} > {log_file} 2>&1 &")
             exec_cmd(f"nohup {os.path.join(FILE_PATH, 'bot')} {args} >/dev/null 2>&1 &")
-            st.write("bot is running, log saved to:", log_file)
-
+            st.write('bot is running')
             time.sleep(2)
         except Exception as e:
             st.write(f"Error executing command: {e}")
@@ -339,7 +362,7 @@ async def extract_domains():
     if ARGO_AUTH and ARGO_DOMAIN:
         argo_domain = ARGO_DOMAIN
         st.write(f'ARGO_DOMAIN: {argo_domain}')
-        #await generate_links(argo_domain)
+        await generate_links(argo_domain)
     else:
         try:
             with open(boot_log_path, 'r') as f:
@@ -357,7 +380,7 @@ async def extract_domains():
             if argo_domains:
                 argo_domain = argo_domains[0]
                 st.write(f'ArgoDomain: {argo_domain}')
-                #await generate_links(argo_domain)
+                await generate_links(argo_domain)
             else:
                 st.write('ArgoDomain not found, re-running bot to obtain ArgoDomain')
                 # Remove boot.log and restart bot
@@ -378,11 +401,145 @@ async def extract_domains():
         except Exception as e:
             st.write(f'Error reading boot.log: {e}')
 
+# Upload nodes to subscription service
+def upload_nodes():
+    if UPLOAD_URL and PROJECT_URL:
+        subscription_url = f"{PROJECT_URL}/{SUB_PATH}"
+        json_data = {
+            "subscription": [subscription_url]
+        }
+        
+        try:
+            response = requests.post(
+                f"{UPLOAD_URL}/api/add-subscriptions",
+                json=json_data,
+                headers={"Content-Type": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                st.write('Subscription uploaded successfully')
+        except Exception as e:
+            pass
+    
+    elif UPLOAD_URL:
+        if not os.path.exists(list_path):
+            return
+        
+        with open(list_path, 'r') as f:
+            content = f.read()
+        
+        nodes = [line for line in content.split('\n') if any(protocol in line for protocol in ['vless://', 'vmess://', 'trojan://', 'hysteria2://', 'tuic://'])]
+        
+        if not nodes:
+            return
+        
+        json_data = json.dumps({"nodes": nodes})
+        
+        try:
+            response = requests.post(
+                f"{UPLOAD_URL}/api/add-nodes",
+                data=json_data,
+                headers={"Content-Type": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                st.write('Nodes uploaded successfully')
+        except:
+            return None
+    else:
+        return
+    
+# Send notification to Telegram
+def send_telegram():
+    if not BOT_TOKEN or not CHAT_ID:
+        # st.write('TG variables is empty, Skipping push nodes to TG')
+        return
+    
+    try:
+        with open(sub_path, 'r') as f:
+            message = f.read()
+        
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        
+        escaped_name = re.sub(r'([_*\[\]()~>#+=|{}.!\-])', r'\\\1', NAME)
+        
+        params = {
+            "chat_id": CHAT_ID,
+            "text": f"**{escaped_name}节点推送通知**\n{message}",
+            "parse_mode": "MarkdownV2"
+        }
+        
+        requests.post(url, params=params)
+        st.write('Telegram message sent successfully')
+    except Exception as e:
+        st.write(f'Failed to send Telegram message: {e}')
+
+# Generate links and subscription content
+async def generate_links(argo_domain):
+    meta_info = subprocess.run(['curl', '-sm', '5', '-H', 'User-Agent: Mozilla/5.0', 'https://api.ip.sb/geoip'], capture_output=True, text=True)
+    geo_data = json.loads(meta_info.stdout)
+    country_code = geo_data.get('country_code', 'Unknown')
+    isp = geo_data.get('isp', 'Unknown').replace(' ', '_').strip()
+    if NAME and NAME.strip():
+        ISP = f"{NAME.strip()}-{country_code}_{isp}"
+    else:
+        ISP = f"{country_code}_{isp}"
+
+    time.sleep(2)
+    VMESS = {"v": "2", "ps": f"{ISP}", "add": CFIP, "port": CFPORT, "id": UUID, "aid": "0", "scy": "none", "net": "ws", "type": "none", "host": argo_domain, "path": "/vmess-argo?ed=2560", "tls": "tls", "sni": argo_domain, "alpn": "", "fp": "chrome"}
+ 
+    list_txt = f"""
+vless://{UUID}@{CFIP}:{CFPORT}?encryption=none&security=tls&sni={argo_domain}&fp=chrome&type=ws&host={argo_domain}&path=%2Fvless-argo%3Fed%3D2560#{ISP}
+  
+vmess://{ base64.b64encode(json.dumps(VMESS).encode('utf-8')).decode('utf-8')}
+
+trojan://{UUID}@{CFIP}:{CFPORT}?security=tls&sni={argo_domain}&fp=chrome&type=ws&host={argo_domain}&path=%2Ftrojan-argo%3Fed%3D2560#{ISP}
+    """
+    
+    with open(os.path.join(FILE_PATH, 'list.txt'), 'w', encoding='utf-8') as list_file:
+        list_file.write(list_txt)
+
+    sub_txt = base64.b64encode(list_txt.encode('utf-8')).decode('utf-8')
+    with open(os.path.join(FILE_PATH, 'sub.txt'), 'w', encoding='utf-8') as sub_file:
+        sub_file.write(sub_txt)
+        
+    st.write(sub_txt)
+    
+    st.write(f"{FILE_PATH}/sub.txt saved successfully")
+    
+    # Additional actions
+    send_telegram()
+    upload_nodes()
+  
+    return sub_txt   
+ 
+# Add automatic access task
+def add_visit_task():
+    if not AUTO_ACCESS or not PROJECT_URL:
+        st.write("Skipping adding automatic access task")
+        return
+    
+    try:
+        response = requests.post(
+            'https://keep.gvrander.eu.org/add-url',
+            json={"url": PROJECT_URL},
+            headers={"Content-Type": "application/json"}
+        )
+        st.write('automatic access task added successfully')
+    except Exception as e:
+        st.write(f'Failed to add URL: {e}')
+
 # Clean up files after 90 seconds
 def clean_files():
     def _cleanup():
         time.sleep(90)  # Wait 90 seconds
         files_to_delete = [boot_log_path, config_path, list_path, web_path, bot_path, php_path, npm_path]
+        
+        if NEZHA_PORT:
+            files_to_delete.append(npm_path)
+        elif NEZHA_SERVER and NEZHA_KEY:
+            files_to_delete.append(php_path)
+        
         for file in files_to_delete:
             try:
                 if os.path.exists(file):
@@ -401,12 +558,12 @@ def clean_files():
     
 # Main function to start the server
 async def start_server():
-    #delete_nodes()
+    delete_nodes()
     cleanup_old_files()
     create_directory()
     argo_type()
     await download_files_and_run()
-    #add_visit_task()
+    add_visit_task()
     
     server_thread = Thread(target=run_server)
     server_thread.daemon = True
@@ -418,9 +575,9 @@ def run_server():
     server = HTTPServer(('0.0.0.0', PORT), RequestHandler)
     st.write(f"Server is running on port {PORT}")
     st.write(f"Running done！")
-    st.write(f"\nLogs will be delete in 90 seconds")
+    st.write(f"\nLogs will be delete in 90 seconds,you can copy the above nodes!")
     server.serve_forever()
-
+    
 def run_async():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
