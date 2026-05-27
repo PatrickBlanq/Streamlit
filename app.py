@@ -325,7 +325,7 @@ async def download_files_and_run():
             #查看日志
             #exec_cmd(f"nohup {os.path.join(FILE_PATH, 'bot')} {args} > {log_file} 2>&1 &")
             exec_cmd(f"nohup {os.path.join(FILE_PATH, 'bot')} {args} >/dev/null 2>&1 &")
-            st.write("bot is running, log saved to:", log_file)
+            #st.write("bot is running, log saved to:", log_file)
 
             time.sleep(2)
         except Exception as e:
