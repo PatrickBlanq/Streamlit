@@ -46,12 +46,12 @@ def create_directory():
 
     st.write(FILE_PATH)
 
-"""     st.write('\033c', end='')
+    st.write('\033c', end='')
     if not os.path.exists(FILE_PATH):
         os.makedirs(FILE_PATH)
         st.write(f"{FILE_PATH} is created")
     else:
-        st.write(f"{FILE_PATH} already exists") """
+        st.write(f"{FILE_PATH} already exists")
 
 # Global variables
 npm_path = os.path.join(FILE_PATH, 'npm')
@@ -407,7 +407,7 @@ def clean_files():
 async def start_server():
     #delete_nodes()
     cleanup_old_files()
-    create_directory()
+    #create_directory()
     argo_type()
     await download_files_and_run()
     #add_visit_task()
