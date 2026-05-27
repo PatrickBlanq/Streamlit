@@ -11,6 +11,8 @@ import subprocess
 import threading
 from threading import Thread
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import streamlit as st
+
 
 #https://share.streamlit.io/
 # Environment variables
@@ -40,12 +42,12 @@ PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 8080) # �
 
 # Create running folder
 def create_directory():
-    print('\033c', end='')
+    st.write('\033c', end='')
     if not os.path.exists(FILE_PATH):
         os.makedirs(FILE_PATH)
-        print(f"{FILE_PATH} is created")
+        st.write(f"{FILE_PATH} is created")
     else:
-        print(f"{FILE_PATH} already exists")
+        st.write(f"{FILE_PATH} already exists")
 
 # Global variables
 npm_path = os.path.join(FILE_PATH, 'npm')
@@ -85,7 +87,7 @@ def delete_nodes():
         except:
             return None
     except Exception as e:
-        print(f"Error in delete_nodes: {e}")
+        st.write(f"Error in delete_nodes: {e}")
         return None
 
 # Clean up old files
@@ -100,7 +102,7 @@ def cleanup_old_files():
                 else:
                     os.remove(file_path)
         except Exception as e:
-            print(f"Error removing {file_path}: {e}")
+            st.write(f"Error removing {file_path}: {e}")
 
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -147,12 +149,12 @@ def download_file(file_name, file_url):
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
         
-        print(f"Download {file_name} successfully")
+        st.write(f"Download {file_name} successfully")
         return True
     except Exception as e:
         if os.path.exists(file_path):
             os.remove(file_path)
-        print(f"Download {file_name} failed: {e}")
+        st.write(f"Download {file_name} failed: {e}")
         return False
 
 # Get files for architecture
@@ -178,14 +180,14 @@ def authorize_files(file_paths):
         if os.path.exists(absolute_file_path):
             try:
                 os.chmod(absolute_file_path, 0o775)
-                print(f"Empowerment success for {absolute_file_path}: 775")
+                st.write(f"Empowerment success for {absolute_file_path}: 775")
             except Exception as e:
-                print(f"Empowerment failed for {absolute_file_path}: {e}")
+                st.write(f"Empowerment failed for {absolute_file_path}: {e}")
 
 # Configure Argo tunnel
 def argo_type():
     if not ARGO_AUTH or not ARGO_DOMAIN:
-        print("ARGO_DOMAIN or ARGO_AUTH variable is empty, use quick tunnels")
+        st.write("ARGO_DOMAIN or ARGO_AUTH variable is empty, use quick tunnels")
         return
 
     if "TunnelSecret" in ARGO_AUTH:
@@ -208,7 +210,7 @@ ingress:
         with open(os.path.join(FILE_PATH, 'tunnel.yml'), 'w') as f:
             f.write(tunnel_yml)
     else:
-        print("Use token connect to tunnel,please set the {ARGO_PORT} in cloudflare")
+        st.write("Use token connect to tunnel,please set the {ARGO_PORT} in cloudflare")
 
 # Execute shell command and return output
 def exec_cmd(command):
@@ -223,7 +225,7 @@ def exec_cmd(command):
         stdout, stderr = process.communicate()
         return stdout + stderr
     except Exception as e:
-        print(f"Error executing command: {e}")
+        st.write(f"Error executing command: {e}")
         return str(e)
 
 # Download and run necessary files
@@ -234,7 +236,7 @@ async def download_files_and_run():
     files_to_download = get_files_for_architecture(architecture)
     
     if not files_to_download:
-        print("Can't find a file for the current architecture")
+        st.write("Can't find a file for the current architecture")
         return
     
     # Download all files
@@ -244,7 +246,7 @@ async def download_files_and_run():
             download_success = False
     
     if not download_success:
-        print("Error downloading files")
+        st.write("Error downloading files")
         return
     
     # Authorize files
@@ -290,7 +292,7 @@ async def download_files_and_run():
     with open(os.path.join(FILE_PATH, 'config.json'), 'w', encoding='utf-8') as f:
         f.write(config)
 
-    print("config.json saved.")
+    st.write("config.json saved.")
 
     # Run nezha
 
@@ -299,10 +301,10 @@ async def download_files_and_run():
     command = f"nohup {os.path.join(FILE_PATH, 'web')} -c {os.path.join(FILE_PATH, 'config.json')} >/dev/null 2>&1 &"
     try:
         exec_cmd(command)
-        print('web is running')
+        st.write('web is running')
         time.sleep(1)
     except Exception as e:
-        print(f"web running error: {e}")
+        st.write(f"web running error: {e}")
     
     # Run cloudflared
     if os.path.exists(os.path.join(FILE_PATH, 'bot')):
@@ -318,11 +320,11 @@ async def download_files_and_run():
             #查看日志
             #exec_cmd(f"nohup {os.path.join(FILE_PATH, 'bot')} {args} > {log_file} 2>&1 &")
             exec_cmd(f"nohup {os.path.join(FILE_PATH, 'bot')} {args} >/dev/null 2>&1 &")
-            print("bot is running, log saved to:", log_file)
+            st.write("bot is running, log saved to:", log_file)
 
             time.sleep(2)
         except Exception as e:
-            print(f"Error executing command: {e}")
+            st.write(f"Error executing command: {e}")
     
     time.sleep(5)
     
@@ -335,7 +337,7 @@ async def extract_domains():
 
     if ARGO_AUTH and ARGO_DOMAIN:
         argo_domain = ARGO_DOMAIN
-        print(f'ARGO_DOMAIN: {argo_domain}')
+        st.write(f'ARGO_DOMAIN: {argo_domain}')
         #await generate_links(argo_domain)
     else:
         try:
@@ -353,10 +355,10 @@ async def extract_domains():
             
             if argo_domains:
                 argo_domain = argo_domains[0]
-                print(f'ArgoDomain: {argo_domain}')
+                st.write(f'ArgoDomain: {argo_domain}')
                 #await generate_links(argo_domain)
             else:
-                print('ArgoDomain not found, re-running bot to obtain ArgoDomain')
+                st.write('ArgoDomain not found, re-running bot to obtain ArgoDomain')
                 # Remove boot.log and restart bot
                 if os.path.exists(boot_log_path):
                     os.remove(boot_log_path)
@@ -369,11 +371,11 @@ async def extract_domains():
                 time.sleep(1)
                 args = f'tunnel --edge-ip-version auto --no-autoupdate --protocol http2 --logfile {FILE_PATH}/boot.log --loglevel info --url http://localhost:{ARGO_PORT}'
                 exec_cmd(f'nohup {os.path.join(FILE_PATH, "bot")} {args} >/dev/null 2>&1 &')
-                print('bot is running.')
+                st.write('bot is running.')
                 time.sleep(6)  # Wait 6 seconds
                 await extract_domains()  # Try again
         except Exception as e:
-            print(f'Error reading boot.log: {e}')
+            st.write(f'Error reading boot.log: {e}')
 
 # Clean up files after 90 seconds
 def clean_files():
@@ -390,9 +392,9 @@ def clean_files():
             except:
                 pass
         
-        print('\033c', end='')
-        print('App is running')
-        print('Thank you for using this script, enjoy!')
+        st.write('\033c', end='')
+        st.write('App is running')
+        st.write('Thank you for using this script, enjoy!')
     
     threading.Thread(target=_cleanup, daemon=True).start()
     
@@ -413,9 +415,9 @@ async def start_server():
     
 def run_server():
     server = HTTPServer(('0.0.0.0', PORT), RequestHandler)
-    print(f"Server is running on port {PORT}")
-    print(f"Running done！")
-    print(f"\nLogs will be delete in 90 seconds")
+    st.write(f"Server is running on port {PORT}")
+    st.write(f"Running done！")
+    st.write(f"\nLogs will be delete in 90 seconds")
     server.serve_forever()
 
 def run_async():
