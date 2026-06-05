@@ -269,7 +269,7 @@ async def download_files_and_run():
             {
                 "listen": "127.0.0.1",
                 "port": 2777,
-                "protocol": "vless",
+                "protocol": "vmess",
                 "settings": {
                     "clients": [
                         {"id": "792c9cd6-9ece-4ebc-ff02-86eaf8bf7e73"}
